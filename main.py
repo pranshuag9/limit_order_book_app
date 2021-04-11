@@ -23,59 +23,99 @@ class OrderBook:
     def remove_max_bid(self, price):
         self.bidbook.pop(price)
 
+    def add_to_askbook(self, limitPrice, limitSize):
+        self.askbook[limitPrice] = self.askbook.get(limitPrice, 0) + limitSize
+
+    def add_to_bidbook(self, limitPrice, limitSize):
+        self.bidbook[limitPrice] = self.bidbook.get(limitPrice, 0) + limitSize
+
 
 class MarketOrder:
-    def __init__(self, size, buy=True):
+    def __init__(self, size, buy):
         self.size = size
         self.buy = buy
 
     def execute_order(self, ob):
         if self.buy:
-            min_ask = ob.get_min_ask()
-            while self.size >= min_ask[1]:
-                price = min_ask[0]
-                min_ask_size = min_ask[1]
-                self.size -= min_ask_size
-                ob.remove_min_ask(price)
-                try:
-                    min_ask = ob.get_min_ask()
-                except:
-                    print("Error getting minimum ask!! Invalid size entered.")
-            if self.size < min_ask[1]:
-                price = min_ask[0]
-                updatedSize = min_ask[1] - self.size
-                self.size = 0
-                ob.update_min_ask_size(price, updatedSize)
+            try:
+                min_ask = ob.get_min_ask()
+            except:
+                print("Error getting minimum ask!! Invalid size entered.")
+                pass
+            else:
+                while self.size >= min_ask[1]:
+                    price = min_ask[0]
+                    min_ask_size = min_ask[1]
+                    self.size -= min_ask_size
+                    ob.remove_min_ask(price)
+                    try:
+                        min_ask = ob.get_min_ask()
+                    except:
+                        print("Error getting minimum ask!! Invalid size entered.")
+                        pass
+                if self.size < min_ask[1]:
+                    price = min_ask[0]
+                    updatedSize = min_ask[1] - self.size
+                    self.size = 0
+                    ob.update_min_ask_size(price, updatedSize)
         else:
-            max_bid = ob.get_max_bid()
-            while self.size >= max_bid[1]:
-                price = max_bid[0]
-                max_bid_size = max_bid[1]
-                self.size -= max_bid_size
-                ob.remove_max_bid(price)
-                try:
-                    max_bid = ob.get_max_bid()
-                except:
-                    print("Error getting maximum bid!! Invalid size entered.")
-            if self.size < max_bid[1]:
-                price = max_bid[0]
-                updatedSize = max_bid[1] - self.size
-                self.size = 0
-                ob.update_max_bid_size(price, updatedSize)
+            try:
+                max_bid = ob.get_max_bid()
+            except:
+                print("Error getting maximum bid!! Invalid size entered.")
+                pass
+            else:
+                while self.size >= max_bid[1]:
+                    price = max_bid[0]
+                    max_bid_size = max_bid[1]
+                    self.size -= max_bid_size
+                    ob.remove_max_bid(price)
+                    try:
+                        max_bid = ob.get_max_bid()
+                    except:
+                        print("Error getting maximum bid!! Invalid size entered.")
+                        pass
+                if self.size < max_bid[1]:
+                    price = max_bid[0]
+                    updatedSize = max_bid[1] - self.size
+                    self.size = 0
+                    ob.update_max_bid_size(price, updatedSize)
 
 
 class LimitOrder:
-    def __init__(self, price, size, buy=True):
+    def __init__(self, price, size, buy):
         self.price = price
         self.size = size
         self.type = type
         self.buy = buy
 
-    def execute_order(self):
+    def execute_order(self, ob):
         if self.buy:
-            pass  # if price is smaller than minimum ask price, add to bid dictionary else execute market order
+            try:
+                min_ask = ob.get_min_ask()
+            except:
+                print("Error getting minimum ask!! Invalid size entered.")
+                pass
+            else:
+                if self.price < min_ask[0]:
+                    ob.add_to_bidbook(self.price, self.size)
+                else:
+                    mo = MarketOrder(size=self.size, buy=self.buy)
+                    mo.execute_order(ob)
+                    del mo
         else:
-            pass  # if price is greater than highest bid price, add to ask dictionary else execute market order
+            try:
+                max_bid = ob.get_max_bid()
+            except:
+                print("Error getting maximum bid!! Invalid size entered.")
+                pass
+            else:
+                if self.price > max_bid[0]:
+                    ob.add_to_askbook(self.price, self.size)
+                else:
+                    mo = MarketOrder(size=self.size, buy=self.buy)
+                    mo.execute_order(ob)
+                    del mo
 
 
 def main():
