@@ -27,23 +27,41 @@ class OrderBook:
 class MarketOrder:
     def __init__(self, size, buy=True):
         self.size = size
-        self.type = type
         self.buy = buy
 
     def execute_order(self, ob):
         if self.buy:
             min_ask = ob.get_min_ask()
+            while self.size >= min_ask[1]:
+                price = min_ask[0]
+                min_ask_size = min_ask[1]
+                self.size -= min_ask_size
+                ob.remove_min_ask(price)
+                try:
+                    min_ask = ob.get_min_ask()
+                except:
+                    print("Error getting minimum ask!! Invalid size entered.")
             if self.size < min_ask[1]:
                 price = min_ask[0]
-                updatedSize = min_ask[1]
-                ob.update_min_ask_size(price, updatedSize)
+                updatedSize = min_ask[1] - self.size
                 self.size = 0
-            elif self.size == min_ask[1]:
-                price = min_ask[0]
-                ob.remove_min_ask(price)
-        # if size is smaller than minimum ask size, subtract order size from minimum ask size else if equal or greater, then remove and subtract till size is smaller than lowest ask size(sorted on price)
+                ob.update_min_ask_size(price, updatedSize)
         else:
-            pass  # if size is smaller than maximum bid size, subtract order size from maximum bid size else if equal or greater, then remove and subtract till size is smaller than highest bid size(sorted on price)
+            max_bid = ob.get_max_bid()
+            while self.size >= max_bid[1]:
+                price = max_bid[0]
+                max_bid_size = max_bid[1]
+                self.size -= max_bid_size
+                ob.remove_max_bid(price)
+                try:
+                    max_bid = ob.get_max_bid()
+                except:
+                    print("Error getting maximum bid!! Invalid size entered.")
+            if self.size < max_bid[1]:
+                price = max_bid[0]
+                updatedSize = max_bid[1] - self.size
+                self.size = 0
+                ob.update_max_bid_size(price, updatedSize)
 
 
 class LimitOrder:
